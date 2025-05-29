@@ -1,4 +1,5 @@
 import os
+from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 
@@ -18,6 +19,6 @@ async_session = async_sessionmaker(engine)
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         yield session
