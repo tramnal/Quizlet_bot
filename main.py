@@ -2,7 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 
 from app.handlers import router
-from app.database.models import Base, engine
+from app.database.connect_to_db import Base, engine
 from app.config import config
 
 async def init_database():
