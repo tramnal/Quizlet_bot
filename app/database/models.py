@@ -1,27 +1,16 @@
-import os
+from sqlalchemy import BigInteger, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
-from dotenv import load_dotenv
-
-from sqlalchemy import BigInteger, String, ForeignKey, Integer
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
-
-load_dotenv()
-
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-engine = create_async_engine(DATABASE_URL, echo=True)
-async_session = async_sessionmaker(engine, expire_on_commit=False)
+from app.database.connect_to_db import Base
 
 
-class Base(AsyncAttrs, DeclarativeBase):
-    pass
-
-
-class User(Base):
-    __tablename__ = "users"
+class UserWord(Base):
+    __tablename__ = "user_words"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    tg_id = mapped_column(BigInteger, unique=True)
-    name = mapped_column(String)
-    
+    tg_id: Mapped[int] = mapped_column(BigInteger, unique=True)
+    word: Mapped[str] = mapped_column(String(70), index=True)
+    transcription: Mapped[str] = mapped_column(String(90))
+    translation: Mapped[str] = mapped_column(String(120))
+    example: Mapped[str] = mapped_column(Text)
+    audio_url: Mapped[str] = mapped_column(String)
