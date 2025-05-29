@@ -3,11 +3,18 @@ from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 
 from app.handlers import router
-from app.database.models import async_main
+from app.database.models import Base, async_main, engine
+
+
+load_dotenv()
+
+async def init_database():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 async def main():
-    await async_main()
-    load_dotenv()
+    await init_database()
+    
     bot = Bot(token=os.getenv('BOT_TOKEN'))
     dp = Dispatcher()
     dp.include_router(router)
