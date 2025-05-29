@@ -1,12 +1,9 @@
-import asyncio, os
+import asyncio
 from aiogram import Bot, Dispatcher
-from dotenv import load_dotenv
 
 from app.handlers import router
-from app.database.models import Base, async_main, engine
-
-
-load_dotenv()
+from app.database.models import Base, engine
+from app.config import config
 
 async def init_database():
     async with engine.begin() as conn:
@@ -15,7 +12,7 @@ async def init_database():
 async def main():
     await init_database()
     
-    bot = Bot(token=os.getenv('BOT_TOKEN'))
+    bot = Bot(token=config.BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
 
