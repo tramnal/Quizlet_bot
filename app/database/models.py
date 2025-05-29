@@ -1,10 +1,11 @@
 from sqlalchemy import BigInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.connect_to_db import Base
+from app.database import Base
 
 
 class UserWord(Base):
+    '''The main table which imcludes all users words'''
     __tablename__ = "user_words"
 
     id: Mapped[int] = mapped_column(primary_key=True)
