@@ -1,30 +1,23 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 import app.keyboards as kb
-from database import db_requests as rq
-from utils import DictionaryAPI, WordData, WordValidator, ValidationResult
+from app.database import db_requests as rq
+from app.utils import DictionaryAPI, WordData, validate_word
 
 router = Router()
 
 GREETINGS = {'привет', 'здравствуй', 'hello', 'hi', 'hey', 'хай', 'эй', 'здоров'}
 
-
-class WordStates(StatesGroup):
-    '''FSM for saving data state during dialog with user'''
-    waiting_word = State()
-
-
 async def send_greeting(message: Message, state: FSMContext) -> None:
     '''Sends greeting message and help button'''
     await state.clear()
     await message.answer(
-        '👋 Привет! Я Quzilet-бот, который поможет тебе в изучении английского.\n\n'
+        '👋 Привет! Я Quizlet-бот, который поможет тебе в изучении английского.\n\n'
         '📨 Отправь мне английское слово, и я покажу тебе его транскрипцию и перевод.\n\n'
-        'ℹ️ О других возможностях и правилах, касающихся слов, ты можешь узнать нажав на "Справку".',
+        'ℹ️ О других возможностях и правилах, касающихся слов, ты можешь узнать, нажав на "Справку".',
         reply_markup=kb.help_button()
     )
 
@@ -38,33 +31,29 @@ async def greetings(message: Message, state: FSMContext) -> None:
     '''Handles other informal greets from user'''
     await send_greeting(message, state)
 
-@router.message(F.text == 'Справка')
-async def help(message: Message) -> None:
+@router.callback_query(F.data == 'help')
+async def help(callback: CallbackQuery) -> None:
     '''Display help info'''
-    await message.answer(
+    await callback.message.edit_text(
         'ℹ️ Что я умею:\n'
         '🇬🇧 Найти и показать тебе перевод и транскрипцию английского слова\n'
         '📘 Привести пример использования\n'
         '🔊 Прислать озвучку найденного слова\n'
         '💾 Сохранить слово в словарь\n\n'
-        '❗ Вводи английские слова (без цифр, символов, знаков препинания и пробелов).'
+        '❗ Вводи английские слова (без цифр, символов, знаков препинания и пробелов).',
+        reply_markup=kb.help_button()
     )
+    await callback.answer()
 
 @router.message()
 async def handle_word(message: Message, state: FSMContext) -> None:
     '''The main handler. Validates word, fetches data and show buttons'''
-    word = message.text.strip()
-    validation = WordValidator(word).validate()
-
-    if validation == ValidationResult.EMPTY:
-        await message.answer('❗ Введи интересующее слово', reply_markup=kb.help_button())
+    word = await validate_word(message, message.text)
+    if not word:
         return
-    elif validation == ValidationResult.TOO_LONG:
-        await message.answer('🛑 Слишком длинное слово. Введи другое', reply_markup=kb.help_button())
-        return
-    elif validation == ValidationResult.NOT_ENGLISH:
-        await message.answer('❌ 🇬🇧 Используйте только английские буквы.', reply_markup=kb.help_button())
-        return
+    
+    tg_id = message.from_user.id
+    word_data: WordData = await rq
     
     api = DictionaryAPI(word)
     word_data: WordData = await api.get_word_full_data()

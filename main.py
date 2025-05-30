@@ -1,8 +1,8 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 
-from app.handlers import router
-from app import Base, engine, config
+from app import config, router
+from app.database import Base, engine
 
 
 async def init_database() -> None:

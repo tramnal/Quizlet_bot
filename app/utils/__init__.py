@@ -1,2 +1,2 @@
+from .validators import validate_word
 from .dictionary import DictionaryAPI, WordData
-from .validators import WordValidator, ValidationResult

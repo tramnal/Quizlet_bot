@@ -1,16 +1,14 @@
 import aiohttp
-from typing import Any, Dict, Optional
-
 from pydantic import BaseModel
 
 
 class WordData(BaseModel):
     '''Data validation class'''
     word: str
-    transcription: Optional[str] = None
-    translation: Optional[str] = None
-    example: Optional[str] = None
-    audio_url: Optional[str] = None
+    transcription: str | None = None
+    translation: str | None = None
+    example: str | None = None
+    audio_url: str | None = None
 
 
 class DictionaryAPI:
@@ -19,7 +17,7 @@ class DictionaryAPI:
         self.dictionary_url = f'https://api.dictionaryapi.dev/api/v2/entries/en/{self.word}'
         self.translation_url = f'https://libretranslate.com/translate'
     
-    async def _get_json(self, url: str, method: str = 'GET', payload: Optional[dict] = None) -> Optional[Dict[str, Any]]:
+    async def _get_json(self, url: str, method: str = 'GET', payload: dict | None = None) -> dict | None:
         '''Get data in json format'''
         async with aiohttp.ClientSession() as session:
             try:
@@ -30,12 +28,12 @@ class DictionaryAPI:
                 return None # in case of network problems
         return None
 
-    async def get_word_data(self) -> Optional[Dict[str, Any]]:
+    async def get_word_data(self) -> dict | None:
         '''Get word data from dictionaryapi.dev'''
         data = await self._get_json(self.dictionary_url)
         return data[0] if data else None
     
-    async def get_word_translation(self) -> Optional[str]:
+    async def get_word_translation(self) -> str | None:
         '''Trying to find word's translation in libretranslate.com API'''
         payload = {
             'q': self.word,
@@ -46,7 +44,7 @@ class DictionaryAPI:
         data = await self._get_json(self.translation_url, 'POST', payload)
         return data.get('translatedText') if data else None
             
-    async def get_word_full_data(self) -> Optional[WordData]:
+    async def get_word_full_data(self) -> WordData | None:
         '''Returns dict includes word's transcription, translation, example & audio link'''
         data = await self.get_word_data()
         if not data:

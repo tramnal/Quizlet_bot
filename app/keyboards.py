@@ -1,18 +1,16 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-async def help_button() -> ReplyKeyboardMarkup:
-    '''Shows help-button in the main menu'''
-    return ReplyKeyboardMarkup(
+def help_button() -> InlineKeyboardMarkup:
+    '''Shows help-button for additional info and rules'''
+    return InlineKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text='💡 Справка')]
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=True
+            [InlineKeyboardButton(text='💡 Справка', callback_data='help')]
+        ]
     )
 
 
-async def word_options() -> InlineKeyboardMarkup:
+def word_options() -> InlineKeyboardMarkup:
     '''Suggestions to user: show example, send audio or save the word'''
     return InlineKeyboardMarkup(
         inline_keyboard=[
