@@ -8,10 +8,10 @@ class WordData(BaseModel):
     '''Data validation class'''
 
     word: str
-    transcription: str = None
-    translation: str = None
-    example: str = None
-    audio_url: str = None
+    transcription: Optional[str] = None
+    translation: Optional[str] = None
+    example: Optional[str] = None
+    audio_url: Optional[str] = None
 
 
 class DictionaryAPI:
@@ -34,7 +34,7 @@ class DictionaryAPI:
         data = await self._get_json(self.dictionary_url)
         return data[0] if data else None
     
-    async def get_word_translation(self) -> Optional[Dict[str, Any]]:
+    async def get_word_translation(self) -> Optional[str]:
         '''Trying to find word's translation in libretranslate.com API'''
 
         payload = {
@@ -54,12 +54,15 @@ class DictionaryAPI:
             return None
 
         # Extracting transcription and audio
+        transcription = None
+        audio_url = None
         phonetics = data.get('phonetics')
         if phonetics:
             transcription = phonetics[0].get('text')
             audio_url = phonetics[0].get('audio')
         
         # Extracting example in sentences
+        example = None
         meanings = data.get('meanings')
         if example:
             examples = meanings[0].get('definitions')
