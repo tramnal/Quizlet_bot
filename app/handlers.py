@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 import app.keyboards as kb
 from app.database import db_requests as rq
-from app.utils import DictionaryAPI, WordData, validate_word
+from app.utils import WordData, validate_word
 
 router = Router()
 
@@ -40,7 +40,7 @@ async def help(callback: CallbackQuery) -> None:
         '📘 Привести пример использования\n'
         '🔊 Прислать озвучку найденного слова\n'
         '💾 Сохранить слово в словарь\n\n'
-        '❗ Вводи английские слова (без цифр, символов, знаков препинания и пробелов).',
+        '❗ Вводи английские слова (без цифр, символов, знаков препинания и пробелов)',
         reply_markup=kb.help_button()
     )
     await callback.answer()
@@ -53,10 +53,7 @@ async def handle_word(message: Message, state: FSMContext) -> None:
         return
     
     tg_id = message.from_user.id
-    word_data: WordData = await rq
-    
-    api = DictionaryAPI(word)
-    word_data: WordData = await api.get_word_full_data()
+    word_data: WordData = await rq.get_word_from_db_or_api(tg_id, word)
 
     if not word_data:
         await message.answer('⚠️ Не удалось найти слово. Попробуй другое.')
@@ -106,11 +103,7 @@ async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
     word_data = data.get('word_data')
     tg_id = callback.from_user.id
 
-    if await rq.is_word_in_db(tg_id, word_data['word']):
-        await callback.answer('📚 Слово уже в словаре', show_alert=True)
-        return
-    
-    await rq.add_user_word(
+    added = await rq.add_user_word(
         tg_id=tg_id,
         word=word_data['word'],
         transcription=word_data.get('transcription') or '',
@@ -118,4 +111,8 @@ async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
         example=word_data.get('example') or '',
         audio_url=word_data.get('audio_url') or ''
     )
-    await callback.answer('✅ Слово сохранено!')
+
+    if added:
+        await callback.answer('✅ Слово сохранено!')
+    else:
+        await callback.answer('📚 Слово уже в словаре', show_alert=True)
