@@ -3,9 +3,9 @@ from sqlalchemy import select
 from database import async_session, UserWord
 
 
-async def add_user_word(tg_id: int, word: str, transcription: str, translation: str, example: str, audio_url: str):
+async def add_user_word(tg_id: int, word: str, transcription: str, translation: str, example: str, audio_url: str) -> bool:
     '''Returns False if word already in DB, else - adds the word and returns True'''
-    
+
     async with async_session() as session:
         existing = await session.scalar(
             select(UserWord).where(
@@ -29,5 +29,6 @@ async def add_user_word(tg_id: int, word: str, transcription: str, translation: 
         await session.commit()
         return True
 
-
+async def check_word_in_db(word: str):
+    ...
 

@@ -7,8 +7,7 @@ from app.database.requests import get_categories, get_category_item
 
 main = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Каталог')],
                                      [KeyboardButton(text='Корзина')],
-                                     [KeyboardButton(text='Контакты'),
-                                      KeyboardButton(text='О нас')]],
+                                     [KeyboardButton(text='Справка')]],
                             resize_keyboard=True,
                             input_field_placeholder='Выберите пункт меню...')
 
