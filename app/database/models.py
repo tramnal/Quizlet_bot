@@ -6,7 +6,6 @@ from app.database import Base
 
 class UserWord(Base):
     '''The main table that stores all user-submitted words'''
-
     __tablename__ = "user_words"
     __table_args__ = (Index('idx_user_word', 'tg_id', 'word'),)
 

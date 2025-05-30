@@ -5,17 +5,28 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 import app.keyboards as kb
-import app.database.db_requests as rq
-
+from database import db_requests as rq
+from utils import DictionaryAPI, WordData, WordValidator, ValidationResult
 
 router = Router()
 
+GREETINGS = {'привет', 'здравствуй', 'hello', 'hi', 'hey', 'хай', 'эй', 'здоров'}
+
+class WordStates(StatesGroup):
+    '''FSM for saving data state during dialog with user'''
+    waiting_word = State()
+
 
 @router.message(CommandStart())
-async def cmd_start(message: Message):
-    await rq.set_user(message.from_user.id)
-    await message.reply('Привет! Я бот, который поможет тебе в изучении английского.')
-    await message.answer('Отправь мне английское слово')
+async def cmd_start(message: Message, state: FSMContext):
+    '''Handles /start command, greets user and prompts for a word'''
+    await state.clear()
+    await message.answer(
+        'Привет! Я Quzilet-бот, который поможет тебе в изучении английского.\n\n'
+        'Отправь мне английское слово, и я покажу тебе его транскрипцию и перевод.\n\n'
+        'О других возможностях и правилах, касающихся слов, ты можешь узнать нажав на "Справку".',
+        reply_markup=kb.help_button()
+    )
 
 
 @router.message(F.text == 'Каталог')
@@ -28,11 +39,3 @@ async def category(callback: CallbackQuery):
     await callback.answer('Вы выбрали категорию')
     await callback.message.answer('Выберите товар по категории',
                                   reply_markup=await kb.items(callback.data.split('_')[1]))
-
-
-@router.callback_query(F.data.startswith('item_'))
-async def item(callback: CallbackQuery):
-    item_data = await rq.get_item(callback.data.split('_')[1])
-    await callback.answer('Вы выбрали товар')
-    await callback.message.answer(f'Название: {item_data.name}\nОписание: {item_data.description}\nЦена: {item_data.price}$',
-                                  reply_markup=kb.main) # тут какую-то новую клаву можно допилить и показать

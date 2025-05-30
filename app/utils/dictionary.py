@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 class WordData(BaseModel):
     '''Data validation class'''
-
     word: str
     transcription: Optional[str] = None
     translation: Optional[str] = None
@@ -22,7 +21,6 @@ class DictionaryAPI:
     
     async def _get_json(self, url: str, method: str = 'GET', payload: Optional[dict] = None) -> Optional[Dict[str, Any]]:
         '''Get data in json format'''
-
         async with aiohttp.ClientSession() as session:
             try:
                 async with (session.post(url, json=payload) if method == 'POST' else session.get(url)) as resp:
@@ -39,7 +37,6 @@ class DictionaryAPI:
     
     async def get_word_translation(self) -> Optional[str]:
         '''Trying to find word's translation in libretranslate.com API'''
-
         payload = {
             'q': self.word,
             'source': 'en',
@@ -51,7 +48,6 @@ class DictionaryAPI:
             
     async def get_word_full_data(self) -> Optional[WordData]:
         '''Returns dict includes word's transcription, translation, example & audio link'''
-
         data = await self.get_word_data()
         if not data:
             return None

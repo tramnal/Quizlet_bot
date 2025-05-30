@@ -4,7 +4,6 @@ from enum import Enum
 
 class ValidationResult(Enum):
     '''Validation constants'''
-
     VALID = "valid"
     EMPTY = "empty"
     NOT_ENGLISH = "not_english"
@@ -12,7 +11,6 @@ class ValidationResult(Enum):
 
 class WordValidator:
     '''User word validation'''
-
     def __init__(self, word: str):
         self.word = word.strip()
 
