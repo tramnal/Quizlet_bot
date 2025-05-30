@@ -1,8 +1,7 @@
 from sqlalchemy import select
 
-from database import async_session
-from models import UserWord
-from utils import DictionaryAPI, WordData
+from app.database import async_session, UserWord
+from app.utils import DictionaryAPI, WordData
 
 
 async def is_word_in_db(session, tg_id: int, word: str) -> UserWord | None:

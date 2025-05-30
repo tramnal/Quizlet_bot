@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def help_button() -> InlineKeyboardMarkup:
     '''Shows help-button for additional info and rules'''
     return InlineKeyboardMarkup(
-        keyboard=[
+        inline_keyboard=[
             [InlineKeyboardButton(text='💡 Справка', callback_data='help')]
         ]
     )

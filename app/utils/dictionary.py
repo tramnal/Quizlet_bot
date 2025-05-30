@@ -23,15 +23,20 @@ class DictionaryAPI:
             try:
                 async with (session.post(url, json=payload) if method == 'POST' else session.get(url)) as resp:
                     if resp.status == 200:
-                        return await resp.json()
-            except aiohttp.ClientError:
-                return None # in case of network problems
+                        data = await resp.json()
+                        print(f"\n🟡 Ответ от API ({url}):\n{data}\n")  # 🖨️ отладка
+                        return data
+            except aiohttp.ClientError as e:
+                print(f"🔴 Ошибка aiohttp: {e}")
+                return None
         return None
 
     async def get_word_data(self) -> dict | None:
         '''Get word data from dictionaryapi.dev'''
         data = await self._get_json(self.dictionary_url)
-        return data[0] if data else None
+        if isinstance(data, list) and data:
+            return data[0]
+        return None
     
     async def get_word_translation(self) -> str | None:
         '''Trying to find word's translation in libretranslate.com API'''
@@ -42,6 +47,7 @@ class DictionaryAPI:
             'format': 'text'
         }
         data = await self._get_json(self.translation_url, 'POST', payload)
+        print(f"🔵 Ответ LibreTranslate: {data}")
         return data.get('translatedText') if data else None
             
     async def get_word_full_data(self) -> WordData | None:
