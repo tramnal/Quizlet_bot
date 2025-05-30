@@ -17,5 +17,6 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     '''Generate working session with database'''
+    
     async with async_session() as session:
         yield session

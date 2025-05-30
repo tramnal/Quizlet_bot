@@ -6,6 +6,7 @@ from app.database import Base
 
 class UserWord(Base):
     '''The main table which imcludes all users words'''
+    
     __tablename__ = "user_words"
 
     id: Mapped[int] = mapped_column(primary_key=True)
