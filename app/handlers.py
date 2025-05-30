@@ -1,4 +1,3 @@
-from typing import Optional
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
@@ -58,17 +57,17 @@ async def handle_word(message: Message, state: FSMContext) -> None:
     validation = WordValidator(word).validate()
 
     if validation == ValidationResult.EMPTY:
-        await message.answer('❗ Введи интересующее слово')
+        await message.answer('❗ Введи интересующее слово', reply_markup=kb.help_button())
         return
     elif validation == ValidationResult.TOO_LONG:
-        await message.answer('❗ Слишком длинное слово. Введи другое')
+        await message.answer('🛑 Слишком длинное слово. Введи другое', reply_markup=kb.help_button())
         return
     elif validation == ValidationResult.NOT_ENGLISH:
-        await message.answer('❗ 🇬🇧 Используйте только английские буквы.')
+        await message.answer('❌ 🇬🇧 Используйте только английские буквы.', reply_markup=kb.help_button())
         return
     
     api = DictionaryAPI(word)
-    word_data: Optional[WordData] = await api.get_word_full_data()
+    word_data: WordData = await api.get_word_full_data()
 
     if not word_data:
         await message.answer('⚠️ Не удалось найти слово. Попробуй другое.')
@@ -86,10 +85,11 @@ async def handle_word(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == 'example')
 async def send_example(callback: CallbackQuery, state: FSMContext) -> None:
     '''Sends example using in sentences'''
+    await callback.answer('🔄 Ищу пример...')
+
     data = await state.get_data()
     example = data.get('word_data', {}).get('example')
 
-    await callback.answer()
     if example:
         await callback.message.answer(f'📖 Пример использования: {example}')
     else:
@@ -98,18 +98,21 @@ async def send_example(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == 'audio')
 async def send_audio(callback: CallbackQuery, state: FSMContext) -> None:
     '''Sends pronunciation audio of word'''
+    await callback.answer('🔊 Готовлю озвучку...')
+
     data = await state.get_data()
     audio_url = data.get('word_data', {}).get('audio_url')
 
-    await callback.answer()
     if audio_url:
-        await callback.message.answer(audio_url)
+        await callback.message.answer_audio(audio_url)
     else:
         await callback.message.answer(f'⚠️ Озвучка не найдена.')
     
 @router.callback_query(F.data == 'add')
 async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
     '''Save word data to database'''
+    await callback.answer('💾 Сохраняю в словарь...')
+    
     data = await state.get_data()
     word_data = data.get('word_data')
     tg_id = callback.from_user.id
