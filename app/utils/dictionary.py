@@ -24,10 +24,13 @@ class DictionaryAPI:
         '''Get data in json format'''
 
         async with aiohttp.ClientSession() as session:
-            async with (session.post(url, json=payload) if method == 'POST' else session.get(url)) as resp:
-                if resp.status == 200:
-                    return await resp.json()
-                return None
+            try:
+                async with (session.post(url, json=payload) if method == 'POST' else session.get(url)) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+            except aiohttp.ClientError:
+                return None # in case of network problems
+        return None
 
     async def get_word_data(self) -> Optional[Dict[str, Any]]:
         '''Get word data from dictionaryapi.dev'''
@@ -57,22 +60,31 @@ class DictionaryAPI:
         transcription = None
         audio_url = None
         phonetics = data.get('phonetics')
-        if phonetics:
-            transcription = phonetics[0].get('text')
-            audio_url = phonetics[0].get('audio')
+        if phonetics and isinstance(phonetics, list):
+            for item in phonetics:
+                if not transcription and item.get('text'):
+                    transcription = item['text']
+                if not audio_url and item.get('audio'):
+                    audio_url = item['audio']
+        
+        # Just in case if URL isn't start with protocol
+        if audio_url and audio_url.startswith('//'):
+            audio_url = 'https:' + audio_url
         
         # Extracting example in sentences
         example = None
         meanings = data.get('meanings')
-        if example:
-            examples = meanings[0].get('definitions')
-            if examples:
-                example = examples[0].get('example')
+        if meanings and isinstance(meanings, list):
+            definitions = meanings[0].get('definitions')
+            if definitions and isinstance(definitions, list):
+                example = definitions[0].get('example')
+
+        translation = await self.get_word_translation()
 
         return WordData(
             word=self.word,
             transcription=transcription,
-            translation=await self.get_word_translation(),
+            translation=translation,
             example=example,
             audio_url=audio_url
         )
