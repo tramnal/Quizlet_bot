@@ -5,10 +5,10 @@ from app.database import Base
 
 
 class UserWord(Base):
-    '''The main table which imcludes all users words'''
+    '''The main table that stores all user-submitted words'''
 
     __tablename__ = "user_words"
-    __table_args__ = Index('idx_user_word', 'tg_id', 'word')
+    __table_args__ = (Index('idx_user_word', 'tg_id', 'word'),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[int] = mapped_column(BigInteger, index=True)

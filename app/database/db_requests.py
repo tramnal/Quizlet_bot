@@ -6,16 +6,7 @@ from database import async_session, UserWord
 async def add_user_word(tg_id: int, word: str, transcription: str, translation: str, example: str, audio_url: str) -> bool:
     '''Returns False if word already in DB, else - adds the word and returns True'''
 
-    async with async_session() as session:
-        existing = await session.scalar(
-            select(UserWord).where(
-                (UserWord.tg_id == tg_id) & (UserWord.word == word)
-            )
-        )
-
-        if existing:
-            return False
-        
+    async with async_session() as session:        
         new_word = UserWord(
             tg_id=tg_id,
             word=word,
@@ -29,6 +20,13 @@ async def add_user_word(tg_id: int, word: str, transcription: str, translation: 
         await session.commit()
         return True
 
-async def check_word_in_db(word: str):
-    ...
-
+async def is_word_in_db(tg_id: int, word: str) -> bool:
+    '''Check if user's word in DB'''
+    
+    async with async_session as session:
+        existing = await session.scalar(
+            select(UserWord).where(
+                (UserWord.tg_id == tg_id) & (UserWord.word == word)
+            )
+        )
+        return existing is not None

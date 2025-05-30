@@ -5,7 +5,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 import app.keyboards as kb
-import app.database.requests as rq
+import app.database.db_requests as rq
 
 
 router = Router()
