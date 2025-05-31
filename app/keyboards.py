@@ -15,7 +15,7 @@ def word_options() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='🟢 Добавить в словарь', callback_data='add')],
-            [InlineKeyboardButton(text='📝 Пример использования', callback_data='example'),
-             InlineKeyboardButton(text='🗣️ Прислать озвучку', callback_data='audio')]
+            [InlineKeyboardButton(text='📝 Пример', callback_data='example'),
+             InlineKeyboardButton(text='🗣️ Озвучка', callback_data='audio')]
         ]
     )

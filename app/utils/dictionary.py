@@ -79,10 +79,17 @@ class DictionaryAPI:
         return None
 
     async def get_word_full_data(self) -> WordData | None:
-        '''Returns dict includes word's transcription, translation, example & audio link'''
+        '''
+        Returns dict includes word's transcription, translation, example & audio link.
+        Returns wiki-link for proper nouns.
+        '''
         data = await self.get_word_data()
         if not data or not isinstance(data, list):
-            return None
+            wiki_url = f'https://en.wikipedia.org/wiki/{self.word.capitalize()}'
+            return WordData(
+                word=self.word,
+                translation=f'🤔 Возможно, это имя собственное. Попробуй прочитать об этом в Википедии:\n{wiki_url}'
+            )
         data = data[0]
 
         # Extract transcription and audio
@@ -95,6 +102,8 @@ class DictionaryAPI:
                     transcription = item['text']
                 if not audio_url and item.get('audio'):
                     audio_url = item['audio']
+        
+        # Fix link from dictionaryapi.dev
         if audio_url and audio_url.startswith('//'):
             audio_url = 'https:' + audio_url
 

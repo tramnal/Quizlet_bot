@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ContentType
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 
@@ -44,7 +44,7 @@ async def help(callback: CallbackQuery) -> None:
     )
     await callback.answer()
 
-@router.message()
+@router.message(F.content_type == ContentType.TEXT)
 async def handle_word(message: Message, state: FSMContext) -> None:
     '''The main handler. Validates word, fetches data and show buttons'''
     word = await validate_word(message, message.text)
@@ -54,15 +54,19 @@ async def handle_word(message: Message, state: FSMContext) -> None:
     tg_id = message.from_user.id
     word_data: WordData = await rq.get_word_from_db_or_api(tg_id, word)
 
-    if not word_data:
-        await message.answer('⚠️ Не удалось найти слово. Попробуй другое.')
+    if not word_data.transcription and not word_data.example and not word_data.audio_url:
+        await message.answer(
+            f'⚠️ Не удалось найти подробностей по слову <b>{word_data.word}</b>\n\n'
+            f'{word_data.translation}',
+            parse_mode='HTML'
+        )
         return
     
     await state.update_data(word_data=word_data.model_dump())
     await message.answer(
         f"📘 <b>{word_data.word}</b>\n"
-        f"🔊 Транскрипция: <i>{word_data.transcription or '-нет транскрипции-'}</i>\n"
-        f"🌍 Перевод: <i>{word_data.translation or '-нет перевода-'}</i>\n",
+        f"🔊 <u>Транскрипция</u>: <b>{word_data.transcription or '-нет транскрипции-'}</b>\n"
+        f"🌍 <u>Перевод</u>: <b>{word_data.translation or '-нет перевода-'}</b>\n",
         reply_markup=kb.word_options(),
         parse_mode='HTML'
     )
@@ -113,3 +117,8 @@ async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer('✅ Слово сохранено!')
     else:
         await callback.answer('📚 Слово уже в словаре', show_alert=True)
+
+@router.message()
+async def unsupported_message(message: Message) -> None:
+    '''Handles another messages from user, like audio, voice, loco, pics and etc.'''
+    await message.answer('⚠️ Я понимаю только текстовые сообщения — пришли, пожалуйста, английское слово.')

@@ -12,10 +12,21 @@ class ValidationResult(Enum):
     EMPTY = "empty"
     NOT_ENGLISH = "not_english"
     TOO_LONG = "too_long"
+    INVALID_PARTS = "invalid_parts"
+
+
+VALIDATION_MESSAGES: dict[ValidationResult, str] = {
+    ValidationResult.EMPTY: '❗ Введи интересующее слово',
+    ValidationResult.TOO_LONG: '🛑 Слишком длинное слово. Введи другое',
+    ValidationResult.NOT_ENGLISH: '❌ 🇬🇧 Используй только английские буквы и дефис.',
+    ValidationResult.INVALID_PARTS: '⚠️ Каждая часть слова должна быть минимум из 2 букв'
+}
 
 
 class WordValidator:
     '''User word validation'''
+    BASE_REGEX = re.compile(r"^(?!-+$)[a-zA-Z-]{2,}$")
+
     def __init__(self, word: str):
         self.word = word.strip()
 
@@ -24,16 +35,14 @@ class WordValidator:
             return ValidationResult.EMPTY
         if len(self.word) > 70:
             return ValidationResult.TOO_LONG
-        if not re.fullmatch(r"[a-zA-Z'-]+", self.word):
+        if not self.BASE_REGEX.fullmatch(self.word):
             return ValidationResult.NOT_ENGLISH
+        if "-" in self.word:
+            parts = self.word.split("-")
+            if any(len(part) < 2 for part in parts):
+                return ValidationResult.INVALID_PARTS
         return ValidationResult.VALID
 
-
-VALIDATION_MESSAGES: dict[ValidationResult, str] = {
-    ValidationResult.EMPTY: '❗ Введи интересующее слово',
-    ValidationResult.TOO_LONG: '🛑 Слишком длинное слово. Введи другое',
-    ValidationResult.NOT_ENGLISH: '❌ 🇬🇧 Используй только английские буквы.'
-}
 
 async def validate_word(message: Message, word: str) -> str | None:
     '''Check the input. Returns None if incorrect'''
