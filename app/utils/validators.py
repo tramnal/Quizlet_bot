@@ -40,7 +40,7 @@ async def validate_word(message: Message, word: str) -> str | None:
     validation = WordValidator(word).validate()
 
     if validation != ValidationResult.VALID:
-        await message.answer(validation.value, reply_markup=kb.help_button())
+        await message.answer(validation.value, reply_markup=kb.main_menu())
         return None
 
     return word

@@ -2,12 +2,19 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ContentType
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 import app.keyboards as kb
 from app.database import db_requests as rq
 from app.utils import WordData, validate_word
 
 router = Router()
+
+
+class DeleteStates(StatesGroup):
+    waiting_for_word = State()
+    confirm = State()
+
 
 GREETINGS = {'привет', 'здравствуй', 'hello', 'hi', 'hey', 'хай', 'эй', 'здоров'}
 
@@ -18,7 +25,7 @@ async def send_greeting(message: Message, state: FSMContext) -> None:
         '👋 Привет! Я Quizlet-бот, который поможет тебе в изучении английского.\n\n'
         '📨 Отправь мне английское слово, и я покажу тебе его транскрипцию и перевод.\n\n'
         'ℹ️ О других возможностях и правилах, касающихся слов, ты можешь узнать, нажав на "Справку".',
-        reply_markup=kb.help_button()
+        reply_markup=kb.main_menu()
     )
 
 @router.message(CommandStart())
@@ -31,10 +38,16 @@ async def greetings(message: Message, state: FSMContext) -> None:
     '''Handles other informal greets from user'''
     await send_greeting(message, state)
 
-@router.callback_query(F.data == 'help')
-async def help(callback: CallbackQuery) -> None:
+@router.message(F.text == 'Егор')
+async def joke(message: Message) -> None:
+    '''Пасхалка для Егорыча:)'''
+    await message.answer('Текнолоджыйя!',
+                         reply_markup=kb.main_menu())
+
+@router.message(F.text == '💡 Справка')
+async def help(message: Message) -> None:
     '''Display help info'''
-    await callback.message.edit_text(
+    await message.answer(
         'ℹ️ Что я умею:\n\n'
         '🇬🇧 Найти и показать тебе перевод и транскрипцию английского слова\n'
         '📘 Привести пример использования\n'
@@ -42,7 +55,77 @@ async def help(callback: CallbackQuery) -> None:
         '💾 Сохранить слово в словарь\n\n'
         '❗ Вводи английские слова (без цифр, символов, знаков препинания и пробелов)'
     )
-    await callback.answer()
+
+@router.message(F.text == '📚 Мои слова')
+async def show_user_words(message: Message) -> None:
+    '''Shows user words saved in database'''
+    tg_id = message.from_user.id
+    words = await rq.get_all_user_words(tg_id)
+
+    if not words:
+        await message.answer('📭 У тебя пока нет сохранённых слов...',
+                                      reply_markup=kb.main_menu())
+        return
+    
+    msg = '📚 <b>Твои слова:</b>\n\n' + '\n'.join(f'• {w.word}' for w in words)
+    await message.answer(msg, parse_mode='HTML')
+    await message.answer(
+        '❌ Хочешь почистить словарь? Нажми на одну из кнопок удаления\n'
+        'Либо продолжай вводить английские слова и добавлять их',
+        reply_markup=kb.main_menu()
+    )
+
+@router.message(F.text == '🗑️ Удалить слово')
+async def ask_word_to_del(message: Message, state: FSMContext) -> None:
+    '''Asks user to input the word for deleting'''
+    await message.answer("✂️ Введи слово, которое хочешь удалить из словаря:",
+                         reply_markup=kb.cancel_button())
+    await state.set_state(DeleteStates.waiting_for_word)
+
+@router.message(DeleteStates.confirm, F.text == '🔙 Отмена')
+async def cancel_clear_dict(message: Message, state: FSMContext):
+    '''Cancels clear user's database'''
+    await state.clear()
+    await message.answer("❌ Очистка словаря отменена.", reply_markup=kb.main_menu())
+
+@router.message(F.text == '🔙 Отмена')
+async def cancel_delete(message: Message, state: FSMContext) -> None:
+    '''Cancels deleting the word'''
+    await state.clear()
+    await message.answer("❌ Удаление отменено.", reply_markup=kb.main_menu())
+
+@router.message(F.text == '🧹 Очистить словарь')
+async def ask_clear_dict(message: Message, state: FSMContext):
+    '''Asks confirmation to clear user's dict'''
+    await state.set_state(DeleteStates.confirm)
+    await message.answer("⚠️ Ты точно хочешь удалить все слова из своего словаря?",
+                         reply_markup=kb.confirm_clear_dict())
+
+@router.message(DeleteStates.confirm, F.text == '✅ Да')
+async def confirm_clear_dict(message: Message, state: FSMContext):
+    '''Confirms clear user's dict'''
+    tg_id = message.from_user.id
+    await rq.clear_user_db(tg_id)
+    await state.clear()
+    await message.answer('👌 Словарь очищен', reply_markup=kb.main_menu())
+
+@router.message(DeleteStates.waiting_for_word)
+async def delete_word(message: Message, state: FSMContext) -> None:
+    '''Deletes user word if exists.'''
+    word = message.text.strip().lower()
+    tg_id = message.from_user.id
+
+    deleted = await rq.delete_word_from_db(tg_id, word)
+    if deleted:
+        await message.answer(f'✅ Слово <b>{word}</b> удалено из словаря.',
+                             parse_mode='HTML',
+                             reply_markup=kb.main_menu())
+    else:
+        await message.answer(f'⚠️ Слово <b>{word}</b> не найдено в твоём словаре.',
+                             parse_mode='HTML',
+                             reply_markup=kb.main_menu())
+
+    await state.clear()
 
 @router.message(F.content_type == ContentType.TEXT)
 async def handle_word(message: Message, state: FSMContext) -> None:
@@ -80,9 +163,11 @@ async def send_example(callback: CallbackQuery, state: FSMContext) -> None:
     example = data.get('word_data', {}).get('example')
 
     if example:
-        await callback.message.answer(f'📖 Пример использования: {example}')
+        await callback.message.answer(f'📖 Пример использования: {example}',
+                                      reply_markup=kb.main_menu())
     else:
-        await callback.message.answer(f'⚠️ Пример не найден.')
+        await callback.message.answer(f'⚠️ Пример не найден.',
+                                      reply_markup=kb.main_menu())
 
 @router.callback_query(F.data == 'audio')
 async def send_audio(callback: CallbackQuery, state: FSMContext) -> None:
@@ -93,9 +178,11 @@ async def send_audio(callback: CallbackQuery, state: FSMContext) -> None:
     audio_url = data.get('word_data', {}).get('audio_url')
 
     if audio_url:
-        await callback.message.answer_audio(audio_url)
+        await callback.message.answer_audio(audio_url,
+                                            reply_markup=kb.main_menu())
     else:
-        await callback.message.answer(f'⚠️ Озвучка не найдена.')
+        await callback.message.answer(f'⚠️ Озвучка не найдена.',
+                                      reply_markup=kb.main_menu())
     
 @router.callback_query(F.data == 'add')
 async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
@@ -115,10 +202,20 @@ async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
 
     if added:
         await callback.answer('✅ Слово сохранено!')
+        await callback.message.answer(text='👀 Хочешь ввести новое слово или заглянуть в словарь?',
+                                      reply_markup=kb.main_menu())
     else:
         await callback.answer('📚 Слово уже в словаре', show_alert=True)
+        await callback.message.answer(text='👀 Хочешь ввести новое слово или заглянуть в словарь?',
+                                      reply_markup=kb.main_menu())
 
 @router.message()
 async def unsupported_message(message: Message) -> None:
     '''Handles another messages from user, like audio, voice, loco, pics and etc.'''
-    await message.answer('⚠️ Я понимаю только текстовые сообщения — пришли, пожалуйста, английское слово.')
+    await message.answer('⚠️ Я понимаю только текстовые сообщения — пришли, пожалуйста, английское слово.',
+                         reply_markup=kb.main_menu())
+
+@router.callback_query(F.data == 'my_dict')
+async def show_user_words(callback: CallbackQuery) -> None:
+    '''Shows to user control dict keyboard'''
+    await callback.answer()

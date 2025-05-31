@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.database import async_session, UserWord
 from app.utils import DictionaryAPI, WordData
@@ -51,3 +51,27 @@ async def get_word_from_db_or_api(tg_id: int, word: str) -> WordData | None:
     # If not exist in DB - go to API
     api = DictionaryAPI(word)
     return await api.get_word_full_data()
+
+async def get_all_user_words(tg_id: int) -> list[UserWord]:
+    '''Returns user words or replies there is no words yet'''
+    async with async_session() as session:
+        user_words = select(UserWord).where(UserWord.tg_id == tg_id).order_by(UserWord.word)
+        result = await session.execute(user_words)
+        return result.scalars().all()
+    
+async def delete_word_from_db(tg_id: int, word: str) -> bool:
+    '''Deletes written word from database'''
+    async with async_session() as session:
+        del_action = delete(UserWord).where(
+            UserWord.tg_id == tg_id,
+            UserWord.word == word.lower()
+        )
+        result = await session.execute(del_action)
+        await session.commit()
+        return result.rowcount > 0
+    
+async def clear_user_db(tg_id: int) -> bool:
+    '''Deletes all user words from database'''
+    async with async_session() as session:
+        await session.execute(delete(UserWord).where(UserWord.tg_id == tg_id))
+        await session.commit()
