@@ -2,7 +2,7 @@ import re
 
 from aiogram.types import Message
 
-from utils import ValidationResult
+from app.utils.constants import ValidationResult
 from app import keyboards as kb
 
 

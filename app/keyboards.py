@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
-from utils import MenuButtons
+from app.utils import MenuButtons
 
 def main_menu():
     '''Shows the main control keyboard'''

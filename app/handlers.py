@@ -74,8 +74,9 @@ async def show_user_words(message: Message) -> None:
     msg = '📚 <b>Твои слова:</b>\n\n' + '\n'.join(f'• {w.word}' for w in words)
     await message.answer(msg, parse_mode='HTML')
     await message.answer(
-        '❌ Хочешь почистить словарь? Нажми на одну из кнопок удаления\n'
-        'Либо продолжай вводить английские слова и добавлять их',
+        '❔ Что хочешь делать дальше?\n'
+        'Можешь перейти по одной из кнопок меню,\n'
+        'либо продолжай вводить английские слова и добавлять их в словарь',
         reply_markup=kb.main_menu()
     )
 
@@ -111,7 +112,7 @@ async def send_csv(message: Message) -> None:
     tg_id = message.from_user.id
     csv_dict = await export_to_csv(tg_id)
 
-    if not csv_dict.getbuffer().nbytes:
+    if csv_dict == None:
         await message.answer('📭 У тебя пока нет сохранённых слов...',
                              reply_markup=kb.main_menu())
         return

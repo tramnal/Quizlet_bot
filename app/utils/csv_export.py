@@ -1,11 +1,14 @@
 import csv
 import io
-from database.db_requests import get_all_user_words
+from app.database.db_requests import get_all_user_words
 
 
 async def export_to_csv(tg_id: int) -> io.BytesIO:
     '''Exports user dict to csv-file'''
     words = await get_all_user_words(tg_id)
+
+    if not words:
+        return None
 
     file = io.StringIO()
     writer = csv.writer(file)
