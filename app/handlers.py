@@ -1,12 +1,12 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, ContentType
+from aiogram.types import Message, CallbackQuery, ContentType, BufferedInputFile
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 import app.keyboards as kb
 from app.database import db_requests as rq
-from app.utils import WordData, validate_word
+from app.utils import WordData, validate_word, export_to_csv
 
 router = Router()
 
@@ -41,8 +41,11 @@ async def greetings(message: Message, state: FSMContext) -> None:
 @router.message(F.text == 'Егор')
 async def joke(message: Message) -> None:
     '''Пасхалка для Егорыча:)'''
-    await message.answer('Текнолоджыйя!',
-                         reply_markup=kb.main_menu())
+    await message.answer_photo(
+        photo='https://imgur.com/a/rpuoDjk',
+        caption='Текнолоджыйя!',
+        reply_markup=kb.main_menu()
+    )
 
 @router.message(F.text == '💡 Справка')
 async def help(message: Message) -> None:
@@ -100,6 +103,26 @@ async def ask_clear_dict(message: Message, state: FSMContext):
     await state.set_state(DeleteStates.confirm)
     await message.answer("⚠️ Ты точно хочешь удалить все слова из своего словаря?",
                          reply_markup=kb.confirm_clear_dict())
+
+@router.message(F.text == '📤 Экспорт словаря')
+async def send_csv(message: Message) -> None:
+    '''Sends user dict in csv file'''
+    tg_id = message.from_user.id
+    csv_dict = await export_to_csv(tg_id)
+
+    if not csv_dict.getbuffer().nbytes:
+        await message.answer('📭 У тебя пока нет сохранённых слов...',
+                             reply_markup=kb.main_menu())
+        return
+    
+    await message.answer_document(
+        document=BufferedInputFile(
+            file=csv_dict.read(),
+            filename='my_words.csv'
+        ),
+        caption='📄 Вот твой словарь. Можешь загрузить его на quizlet.com,\n'
+        'чтобы создать карточки для изучения'
+    )
 
 @router.message(DeleteStates.confirm, F.text == '✅ Да')
 async def confirm_clear_dict(message: Message, state: FSMContext):

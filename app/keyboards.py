@@ -5,7 +5,8 @@ def main_menu():
     '''Shows the main control keyboard'''
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text='📚 Мои слова')],
+            [KeyboardButton(text='📚 Мои слова'),
+             KeyboardButton(text='📤 Экспорт словаря')],
             [KeyboardButton(text='🗑️ Удалить слово'),
              KeyboardButton(text='🧹 Очистить словарь'),
              KeyboardButton(text='💡 Справка')],
