@@ -1,18 +1,9 @@
 import re
-from enum import Enum
 
 from aiogram.types import Message
 
+from utils import ValidationResult
 from app import keyboards as kb
-
-
-class ValidationResult(Enum):
-    '''Validation outcomes with messages as values'''
-    VALID = None
-    EMPTY = '❗ Введи интересующее слово'
-    TOO_LONG = '🛑 Слишком длинное слово. Введи другое'
-    NOT_ENGLISH = '❌ 🇬🇧 Используй только английские буквы (допускается дефис в середине слова).'
-    INVALID_PARTS = '⚠️ Каждая часть слова должна быть минимум из 2 букв'
 
 
 class WordValidator:

@@ -6,7 +6,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 import app.keyboards as kb
 from app.database import db_requests as rq
-from app.utils import WordData, validate_word, export_to_csv
+from app.utils import WordData, validate_word, export_to_csv, MenuButtons
 
 router = Router()
 
@@ -47,7 +47,7 @@ async def joke(message: Message) -> None:
         reply_markup=kb.main_menu()
     )
 
-@router.message(F.text == '💡 Справка')
+@router.message(F.text == MenuButtons.HELP)
 async def help(message: Message) -> None:
     '''Display help info'''
     await message.answer(
@@ -55,11 +55,12 @@ async def help(message: Message) -> None:
         '🇬🇧 Найти и показать тебе перевод и транскрипцию английского слова\n'
         '📘 Привести пример использования\n'
         '🔊 Прислать озвучку найденного слова\n'
-        '💾 Сохранить слово в словарь\n\n'
+        '💾 Сохранить слово в словарь\n'
+        '📁 Прислать твой словарь в файле, чтоб ты мог загрузить его на quizlet.com\n\n'
         '❗ Вводи английские слова (без цифр, символов, знаков препинания и пробелов)'
     )
 
-@router.message(F.text == '📚 Мои слова')
+@router.message(F.text == MenuButtons.MY_WORDS)
 async def show_user_words(message: Message) -> None:
     '''Shows user words saved in database'''
     tg_id = message.from_user.id
@@ -78,33 +79,33 @@ async def show_user_words(message: Message) -> None:
         reply_markup=kb.main_menu()
     )
 
-@router.message(F.text == '🗑️ Удалить слово')
+@router.message(F.text == MenuButtons.DELETE_WORD)
 async def ask_word_to_del(message: Message, state: FSMContext) -> None:
     '''Asks user to input the word for deleting'''
     await message.answer("✂️ Введи слово, которое хочешь удалить из словаря:",
                          reply_markup=kb.cancel_button())
     await state.set_state(DeleteStates.waiting_for_word)
 
-@router.message(DeleteStates.confirm, F.text == '🔙 Отмена')
+@router.message(DeleteStates.confirm, F.text == MenuButtons.CANCEL)
 async def cancel_clear_dict(message: Message, state: FSMContext):
     '''Cancels clear user's database'''
     await state.clear()
     await message.answer("❌ Очистка словаря отменена.", reply_markup=kb.main_menu())
 
-@router.message(F.text == '🔙 Отмена')
+@router.message(F.text == MenuButtons.CANCEL)
 async def cancel_delete(message: Message, state: FSMContext) -> None:
     '''Cancels deleting the word'''
     await state.clear()
     await message.answer("❌ Удаление отменено.", reply_markup=kb.main_menu())
 
-@router.message(F.text == '🧹 Очистить словарь')
+@router.message(F.text == MenuButtons.CLEAR_DICT)
 async def ask_clear_dict(message: Message, state: FSMContext):
     '''Asks confirmation to clear user's dict'''
     await state.set_state(DeleteStates.confirm)
     await message.answer("⚠️ Ты точно хочешь удалить все слова из своего словаря?",
                          reply_markup=kb.confirm_clear_dict())
 
-@router.message(F.text == '📤 Экспорт словаря')
+@router.message(F.text == MenuButtons.EXPORT)
 async def send_csv(message: Message) -> None:
     '''Sends user dict in csv file'''
     tg_id = message.from_user.id
@@ -237,8 +238,3 @@ async def unsupported_message(message: Message) -> None:
     '''Handles another messages from user, like audio, voice, loco, pics and etc.'''
     await message.answer('⚠️ Я понимаю только текстовые сообщения — пришли, пожалуйста, английское слово.',
                          reply_markup=kb.main_menu())
-
-@router.callback_query(F.data == 'my_dict')
-async def show_user_words(callback: CallbackQuery) -> None:
-    '''Shows to user control dict keyboard'''
-    await callback.answer()
