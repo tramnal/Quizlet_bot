@@ -1,5 +1,8 @@
 import aiohttp
 from pydantic import BaseModel
+from googletrans import Translator
+
+from app.config import config
 
 
 class WordData(BaseModel):
@@ -15,48 +18,74 @@ class DictionaryAPI:
     def __init__(self, word: str):
         self.word = word.lower()
         self.dictionary_url = f'https://api.dictionaryapi.dev/api/v2/entries/en/{self.word}'
-        self.translation_url = f'https://libretranslate.com/translate'
-    
-    async def _get_json(self, url: str, method: str = 'GET', payload: dict | None = None) -> dict | None:
+        self.translator = Translator()
+        self.twinword_url = f'https://twinword-word-graph-dictionary.p.rapidapi.com/example/?entry={self.word}'
+        self.twinword_key = config.TWINWORD_API_KEY
+
+    async def _get_json(self, url: str, method: str = 'GET', payload: dict | None = None,
+                        headers: dict | None = None) -> dict | None:
         '''Get data in json format'''
         async with aiohttp.ClientSession() as session:
             try:
-                async with (session.post(url, json=payload) if method == 'POST' else session.get(url)) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        print(f"\n🟡 Ответ от API ({url}):\n{data}\n")  # 🖨️ отладка
-                        return data
+                if method == 'POST':
+                    async with session.post(url, json=payload, headers=headers) as resp:
+                        status = resp.status
+                        text = await resp.text()
+                else:
+                    async with session.get(url, headers=headers) as resp:
+                        status = resp.status
+                        text = await resp.text()
+
+                print(f"\n🟡 Запрос: {method} {url}")
+                if payload:
+                    print(f"📦 Payload: {payload}")
+                print(f"🔵 Статус: {status}")
+                print(f"🟠 Ответ (текст): {text}")
+
+                if status == 200:
+                    return await resp.json()
+
             except aiohttp.ClientError as e:
-                print(f"🔴 Ошибка aiohttp: {e}")
+                print(f"🔴 aiohttp ошибка: {e}")
                 return None
+
         return None
 
     async def get_word_data(self) -> dict | None:
         '''Get word data from dictionaryapi.dev'''
-        data = await self._get_json(self.dictionary_url)
-        if isinstance(data, list) and data:
-            return data[0]
-        return None
-    
+        return await self._get_json(self.dictionary_url)
+
     async def get_word_translation(self) -> str | None:
-        '''Trying to find word's translation in libretranslate.com API'''
-        payload = {
-            'q': self.word,
-            'source': 'en',
-            'target': 'ru',
-            'format': 'text'
+        '''Use googletrans library to translate word'''
+        try:
+            result = await self.translator.translate(self.word, src='en', dest='ru')
+            print(f"🔵 Перевод с Google Translate: {result.text}")
+            return result.text
+        except Exception as e:
+            print(f"🔴 Ошибка перевода: {e}")
+            return None
+
+    async def get_example_from_twinword(self) -> str | None:
+        '''Fallback: Get example sentence from Twinword API if there is no via dictionaryapi.dev'''
+        headers = {
+            'X-RapidAPI-Key': self.twinword_key,
+            'X-RapidAPI-Host': 'twinword-word-graph-dictionary.p.rapidapi.com'
         }
-        data = await self._get_json(self.translation_url, 'POST', payload)
-        print(f"🔵 Ответ LibreTranslate: {data}")
-        return data.get('translatedText') if data else None
-            
+        data = await self._get_json(self.twinword_url, headers=headers)
+        if data and 'example' in data:
+            examples = data['example']
+            if isinstance(examples, list) and examples:
+                return examples[0]
+        return None
+
     async def get_word_full_data(self) -> WordData | None:
         '''Returns dict includes word's transcription, translation, example & audio link'''
         data = await self.get_word_data()
-        if not data:
+        if not data or not isinstance(data, list):
             return None
+        data = data[0]
 
-        # Extracting transcription and audio
+        # Extract transcription and audio
         transcription = None
         audio_url = None
         phonetics = data.get('phonetics')
@@ -66,18 +95,19 @@ class DictionaryAPI:
                     transcription = item['text']
                 if not audio_url and item.get('audio'):
                     audio_url = item['audio']
-        
-        # Just in case if URL isn't start with protocol
         if audio_url and audio_url.startswith('//'):
             audio_url = 'https:' + audio_url
-        
-        # Extracting example in sentences
+
+        # Extract example
         example = None
         meanings = data.get('meanings')
         if meanings and isinstance(meanings, list):
             definitions = meanings[0].get('definitions')
             if definitions and isinstance(definitions, list):
                 example = definitions[0].get('example')
+
+        if not example:  # fallback via TwinwordAPI
+            example = await self.get_example_from_twinword()
 
         translation = await self.get_word_translation()
 

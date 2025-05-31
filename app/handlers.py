@@ -96,8 +96,6 @@ async def send_audio(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == 'add')
 async def add_to_db(callback: CallbackQuery, state: FSMContext) -> None:
     '''Save word data to database'''
-    await callback.answer('💾 Сохраняю в словарь...')
-    
     data = await state.get_data()
     word_data = data.get('word_data')
     tg_id = callback.from_user.id
