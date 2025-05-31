@@ -1,8 +1,15 @@
 import aiohttp
 from pydantic import BaseModel
 from googletrans import Translator
+from enum import Enum
 
 from app.config import config
+
+
+class WordLookupResult(Enum):
+    '''Results answers after checkup the word'''
+    WIKI = '🤔 Возможно, это имя собственное. Попробуй прочитать об этом в Википедии:\n{}'
+    NOT_FOUND = '❌ Возможно, это слово не существует. Проверь ввод и попробуй снова.'
 
 
 class WordData(BaseModel):
@@ -24,39 +31,37 @@ class DictionaryAPI:
 
     async def _get_json(self, url: str, method: str = 'GET', payload: dict | None = None,
                         headers: dict | None = None) -> dict | None:
-        '''Get data in json format'''
+        '''Generic HTTP request and getting data in JSON'''
         async with aiohttp.ClientSession() as session:
             try:
-                if method == 'POST':
-                    async with session.post(url, json=payload, headers=headers) as resp:
-                        status = resp.status
-                        text = await resp.text()
-                else:
-                    async with session.get(url, headers=headers) as resp:
-                        status = resp.status
-                        text = await resp.text()
-
-                print(f"\n🟡 Запрос: {method} {url}")
-                if payload:
-                    print(f"📦 Payload: {payload}")
-                print(f"🔵 Статус: {status}")
-                print(f"🟠 Ответ (текст): {text}")
-
-                if status == 200:
-                    return await resp.json()
-
+                async with session.request(method, url, json=payload, headers=headers) as resp:
+                    text = await resp.text()
+                    print(f"\n🟡 Запрос: {method} {url}")
+                    if payload:
+                        print(f"📦 Payload: {payload}")
+                    print(f"🔵 Статус: {resp.status}")
+                    print(f"🟠 Ответ (текст): {text}")
+                    if resp.status == 200:
+                        return await resp.json()
             except aiohttp.ClientError as e:
                 print(f"🔴 aiohttp ошибка: {e}")
-                return None
-
         return None
+
+    async def _check_wiki_url(self, url: str) -> bool:
+        '''Check if Wikipedia article exists for the word'''
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url) as resp:
+                    return resp.status == 200
+            except aiohttp.ClientError:
+                return False
 
     async def get_word_data(self) -> dict | None:
         '''Get word data from dictionaryapi.dev'''
         return await self._get_json(self.dictionary_url)
 
     async def get_word_translation(self) -> str | None:
-        '''Use googletrans library to translate word'''
+        '''Use "googletrans" library to translate word'''
         try:
             result = await self.translator.translate(self.word, src='en', dest='ru')
             print(f"🔵 Перевод с Google Translate: {result.text}")
@@ -78,43 +83,58 @@ class DictionaryAPI:
                 return examples[0]
         return None
 
-    async def get_word_full_data(self) -> WordData | None:
-        '''
-        Returns dict includes word's transcription, translation, example & audio link.
-        Returns wiki-link for proper nouns.
-        '''
-        data = await self.get_word_data()
-        if not data or not isinstance(data, list):
-            wiki_url = f'https://en.wikipedia.org/wiki/{self.word.capitalize()}'
-            return WordData(
-                word=self.word,
-                translation=f'🤔 Возможно, это имя собственное. Попробуй прочитать об этом в Википедии:\n{wiki_url}'
-            )
-        data = data[0]
+    def _parse_phonetics(self, data: dict) -> tuple[str | None, str | None]:
+        '''Parse transcription & audio_url from dictionaryapi.dev's data'''
+        phonetics = data.get('phonetics', [])
+        transcription, audio_url = None, None
 
-        # Extract transcription and audio
-        transcription = None
-        audio_url = None
-        phonetics = data.get('phonetics')
-        if phonetics and isinstance(phonetics, list):
-            for item in phonetics:
-                if not transcription and item.get('text'):
-                    transcription = item['text']
-                if not audio_url and item.get('audio'):
-                    audio_url = item['audio']
+        for item in phonetics:
+            if not transcription and item.get('text'):
+                transcription = item['text']
+            if not audio_url and item.get('audio'):
+                audio_url = item['audio']
         
         # Fix link from dictionaryapi.dev
         if audio_url and audio_url.startswith('//'):
             audio_url = 'https:' + audio_url
 
-        # Extract example
-        example = None
-        meanings = data.get('meanings')
-        if meanings and isinstance(meanings, list):
-            definitions = meanings[0].get('definitions')
-            if definitions and isinstance(definitions, list):
-                example = definitions[0].get('example')
+        return transcription, audio_url
+    
+    def _parse_example(self, data: dict) -> str | None:
+        '''Parse example from dictionaryapi.dev's data'''
+        meanings = data.get('meanings', [])
+        for meaning in meanings:
+            for definition in meaning.get('definitions', []):
+                example = definition.get('example')
+                if example:
+                    return example
+        return None
 
+    async def get_word_full_data(self) -> WordData | None:
+        '''
+        Returns dict includes word's transcription, translation, example & audio link.
+        Returns wiki-link for proper nouns if link exists,
+        otherwise says word probably doesn't exist.
+        '''
+        data = await self.get_word_data()
+
+        if not data or not isinstance(data, list):
+            wiki_url = f'https://en.wikipedia.org/wiki/{self.word.capitalize()}'
+            if await self._check_wiki_url(wiki_url):
+                return WordData(
+                    word=self.word,
+                    translation=WordLookupResult.WIKI.value.format(wiki_url)
+                )
+            return WordData(
+                word=self.word,
+                translation=WordLookupResult.NOT_FOUND.value
+            )
+
+        data = data[0]
+
+        transcription, audio_url = self._parse_phonetics(data)
+        example = self._parse_example(data)
+       
         if not example:  # fallback via TwinwordAPI
             example = await self.get_example_from_twinword()
 
