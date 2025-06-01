@@ -74,7 +74,7 @@ async def delete_word_from_db(tg_id: int, word: str) -> bool:
     async with async_session() as session:
         del_action = delete(UserWord).where(
             UserWord.tg_id == tg_id,
-            UserWord.word == word.lower()
+            UserWord.word == word.lower().strip()
         )
         result = await session.execute(del_action)
         await session.commit()
