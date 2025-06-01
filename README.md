@@ -1,11 +1,10 @@
-I used only free sources for developing.
+I used only free sources for development.
 
-Telegram bot reads your input (some English word)
-and search transcription, translation, sentences as using example and audio.
+The Telegram bot reads your input (an English word)
+and searches for its transcription, translation, example sentences, and audio.
 
-Bot will send you wiki-link for proper nouns.
+Bot will send you a wiki-link for proper nouns.
 
-It creates yours dictionary to save words if you want.
+It creates your personal dictionary to save words if you want.
 
-Then it can send data to you in .csv file
-that you can import to quizlet.com
+You can then export the data as a .csv file to import into quizlet.com.
