@@ -68,7 +68,7 @@ async def show_user_words(message: Message) -> None:
 
     if not words:
         await message.answer('📭 У тебя пока нет сохранённых слов...',
-                                      reply_markup=kb.main_menu())
+                             reply_markup=kb.main_menu())
         return
     
     msg = '📚 <b>Твои слова:</b>\n\n' + '\n'.join(f'• {w.word}' for w in words)
@@ -83,7 +83,7 @@ async def show_user_words(message: Message) -> None:
 @router.message(F.text == MenuButtons.DELETE_WORD)
 async def ask_word_to_del(message: Message, state: FSMContext) -> None:
     '''Asks user to input the word for deleting'''
-    await message.answer("✂️ Введи слово, которое хочешь удалить из словаря:",
+    await message.answer('✂️ Введи слово, которое хочешь удалить из словаря:',
                          reply_markup=kb.cancel_button())
     await state.set_state(DeleteStates.waiting_for_word)
 
@@ -91,19 +91,19 @@ async def ask_word_to_del(message: Message, state: FSMContext) -> None:
 async def cancel_clear_dict(message: Message, state: FSMContext):
     '''Cancels clear user's database'''
     await state.clear()
-    await message.answer("❌ Очистка словаря отменена.", reply_markup=kb.main_menu())
+    await message.answer('❌ Очистка словаря отменена', reply_markup=kb.main_menu())
 
 @router.message(F.text == MenuButtons.CANCEL)
 async def cancel_delete(message: Message, state: FSMContext) -> None:
     '''Cancels deleting the word'''
     await state.clear()
-    await message.answer("❌ Удаление отменено.", reply_markup=kb.main_menu())
+    await message.answer('❌ Удаление отменено', reply_markup=kb.main_menu())
 
 @router.message(F.text == MenuButtons.CLEAR_DICT)
 async def ask_clear_dict(message: Message, state: FSMContext):
     '''Asks confirmation to clear user's dict'''
     await state.set_state(DeleteStates.confirm)
-    await message.answer("⚠️ Ты точно хочешь удалить все слова из своего словаря?",
+    await message.answer('⚠️ Ты точно хочешь удалить все слова из своего словаря?',
                          reply_markup=kb.confirm_clear_dict())
 
 @router.message(F.text == MenuButtons.EXPORT)
@@ -142,11 +142,11 @@ async def delete_word(message: Message, state: FSMContext) -> None:
 
     deleted = await rq.delete_word_from_db(tg_id, word)
     if deleted:
-        await message.answer(f'✅ Слово <b>{word}</b> удалено из словаря.',
+        await message.answer(f'✅ Слово <b>{word}</b> удалено из словаря',
                              parse_mode='HTML',
                              reply_markup=kb.main_menu())
     else:
-        await message.answer(f'⚠️ Слово <b>{word}</b> не найдено в твоём словаре.',
+        await message.answer(f'⚠️ Слово <b>{word}</b> не найдено в твоём словаре',
                              parse_mode='HTML',
                              reply_markup=kb.main_menu())
 
@@ -191,7 +191,7 @@ async def send_example(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.message.answer(f'📖 Пример использования: {example}',
                                       reply_markup=kb.main_menu())
     else:
-        await callback.message.answer(f'⚠️ Пример не найден.',
+        await callback.message.answer(f'⚠️ Пример не найден',
                                       reply_markup=kb.main_menu())
 
 @router.callback_query(F.data == 'audio')
@@ -206,7 +206,7 @@ async def send_audio(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.message.answer_audio(audio_url,
                                             reply_markup=kb.main_menu())
     else:
-        await callback.message.answer(f'⚠️ Озвучка не найдена.',
+        await callback.message.answer(f'⚠️ Озвучка не найдена',
                                       reply_markup=kb.main_menu())
     
 @router.callback_query(F.data == 'add')

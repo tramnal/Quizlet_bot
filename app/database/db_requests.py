@@ -1,4 +1,4 @@
-from sqlalchemy import delete, select
+from sqlalchemy import select, delete
 
 from app.database import async_session, UserWord
 from app.utils import DictionaryAPI, WordData
@@ -13,8 +13,18 @@ async def is_word_in_db(session, tg_id: int, word: str) -> UserWord | None:
         )
     )
 
-async def add_user_word(tg_id: int, word: str, transcription: str, translation: str, example: str, audio_url: str) -> bool:
-    '''Returns False if word already in DB, otherwise adds the word and returns True'''
+async def add_user_word(
+        tg_id: int,
+        word: str,
+        transcription: str,
+        translation: str,
+        example: str,
+        audio_url: str
+        ) -> bool:
+    '''
+    Returns False if word already in database,
+    otherwise adds the word and returns True
+    '''
     word = word.lower()
     async with async_session() as session:
         if await is_word_in_db(session, tg_id, word):
