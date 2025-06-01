@@ -3,18 +3,30 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'quizlet-bot'
-primary_region = 'fra'
+app = "quizlet-bot"
+primary_region = "fra"
 
 [build]
 
-[http_service]
+[[services]]
   internal_port = 8080
-  force_https = true
-  auto_stop_machines = 'stop'
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"
+    protocol = "http"
+
   auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+  auto_stop_machines = "stop"
+  min_machines_running = 1
 
 [[vm]]
-  size = 'shared-cpu-1x'
+  size = "shared-cpu-1x"
