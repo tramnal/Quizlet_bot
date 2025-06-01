@@ -1,0 +1,24 @@
+# flyctl launch added from .gitignore
+# Python
+**/.venv
+**/venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+
+# Environment
+**/.env
+**/.env.local
+
+# IDE
+**/.vscode
+**/.idea
+
+# System files
+**/.DS_Store
+**/Thumbs.db
+
+# flyctl launch added from .venv/.gitignore
+# Created by venv; see https://docs.python.org/3/library/venv.html
+.venv/**/*
+fly.toml
